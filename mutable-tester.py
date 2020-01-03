@@ -131,7 +131,7 @@ class Mutator:
                         self.parseLocus(filename, lineno, line, mut)
 
     def mutate_file(self, locus, dest):
-        print(locus['filename'], locus['lineno'], locus['pattern'], dest)
+        print("%s:%s ('%s' => '%s')"%(locus['filename'], locus['lineno'], locus['pattern'], dest))
         
         #backup
         with open(locus['filename'], 'r') as fp:
@@ -196,7 +196,7 @@ if __name__== "__main__":
     #loop
     cnt = config.runnerCount
     score = 0
-    for i in range(0, cnt):
+    for i in range(1, cnt+1):
         #mutate
         mutator.mutate()
 
@@ -219,12 +219,12 @@ if __name__== "__main__":
         #score
         if test_status == 0 and build_status == 0:
             score += 1
-            print("SUCCESS %d / %d (%s %%)"%(score, i, 100 * score / i))
+            print("SUCCESS %d / %d (%0.1f %%)"%(score, i, 100 * score / i))
         else:
-            print("FAILED %d / %d (%s %%)"%(score, i, 100 * score / i))
+            print("FAILED %d / %d (%0.1f %%)"%(score, i, 100 * score / i))
 
         #restore
         mutator.restore()
 
     #final
-    print("SCORE %d / %d (%s %%)"%(score, cnt, 100 * score / cnt))
+    print("SCORE %d / %d (%0.1f %%)"%(score, cnt, 100 * score / cnt))
