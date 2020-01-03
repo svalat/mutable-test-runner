@@ -13,6 +13,7 @@ import glob
 import os
 import re
 import random
+from subprocess import STDOUT, check_output, CalledProcessError
 
 #Config class
 class Config:
@@ -27,6 +28,7 @@ class Config:
         self.buildCommand = config["build"]["command"]
         self.testDirectory = config["test"]["directory"]
         self.testCommand = config["test"]["command"]
+        self.testMaxTime = config["test"]["maxtime"]
 
 #class to track coverage stats
 class Coverage:
@@ -86,8 +88,8 @@ class Mutator:
             "-=": ["+="],
             " + ": [" - ", " * ", " / "],
             " - ": [" + ", " * ", " / "],
-            # " * ": [" + ", " - ", " / "],
-            # " / ": [" + ", " - ", " * "],
+            #" * ": [" + ", " - ", " / "],
+            #" / ": [" + ", " - ", " * "],
             "0":['1', '2', '3', '4', '5', '6', '7', '8', '9'],
             "1":['0', '2', '3', '4', '5', '6', '7', '8', '9'],
             "2":['1', '0', '3', '4', '5', '6', '7', '8', '9'],
@@ -171,14 +173,54 @@ class Mutator:
 
 #main
 if __name__== "__main__":
+    #load config
     config = Config("config.ini")
     coverage = Coverage()
+
+    #load coverage
     coverage.load(config.coverageFile)
+
+    #build mutator
     mutator = Mutator()
+
+    #reset sources
+    os.chdir(config.sourcesPaths)
+    os.system("git reset --hard")
+
+    #load sources
     for path in config.sourcesPaths.split(','):
         for ext in config.sourcesPatterns.split(','):
             for fname in glob.glob(path+"/**/"+ext, recursive=True):
                 mutator.loadFile(fname, coverage)
 
-    mutator.mutate()
-    mutator.restore()
+    cnt = 10
+    score = 0
+    for i in range(0,cnt):
+        #mutate
+        mutator.mutate()
+
+        #build
+        os.chdir(config.buildDirectory)
+        build_status = os.system(config.buildCommand + " 1>/dev/null 2>/dev/null")
+
+        #run tests
+        if build_status == 0:
+            os.chdir(config.testDirectory)
+            try:
+                check_output(config.testCommand, shell=True, stderr=STDOUT, timeout=int(config.testMaxTime))
+                test_status = 0
+            except CalledProcessError:
+                test_status = 1
+
+        #score
+        if test_status == 0 and build_status == 0:
+            score += 1
+            print("SUCCESS (%d / %d)"%(score, i))
+        else:
+            print("FAILED (%d / %d)"%(score, i))
+
+        #restore
+        mutator.restore()
+
+    #final
+    print("SCORE %d / %d (%s %%)"%(score, cnt, 100 * score / cnt))
