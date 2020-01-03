@@ -13,7 +13,7 @@ import glob
 import os
 import re
 import random
-from subprocess import STDOUT, check_output, CalledProcessError
+from subprocess import STDOUT, check_output, CalledProcessError, TimeoutExpired
 
 #Config class
 class Config:
@@ -28,7 +28,8 @@ class Config:
         self.buildCommand = config["build"]["command"]
         self.testDirectory = config["test"]["directory"]
         self.testCommand = config["test"]["command"]
-        self.testMaxTime = config["test"]["maxtime"]
+        self.testMaxTime = int(config["test"]["maxtime"])
+        self.runnerCount = int(config["runner"]["count"])
 
 #class to track coverage stats
 class Coverage:
@@ -128,7 +129,6 @@ class Mutator:
                 if coverage.hasFileLine(filename, lineno):
                     for mut in self.mutations:
                         self.parseLocus(filename, lineno, line, mut)
-            print(self.locusList)
 
     def mutate_file(self, locus, dest):
         print(locus['filename'], locus['lineno'], locus['pattern'], dest)
@@ -193,9 +193,10 @@ if __name__== "__main__":
             for fname in glob.glob(path+"/**/"+ext, recursive=True):
                 mutator.loadFile(fname, coverage)
 
-    cnt = 10
+    #loop
+    cnt = config.runnerCount
     score = 0
-    for i in range(0,cnt):
+    for i in range(0, cnt):
         #mutate
         mutator.mutate()
 
@@ -207,17 +208,20 @@ if __name__== "__main__":
         if build_status == 0:
             os.chdir(config.testDirectory)
             try:
-                check_output(config.testCommand, shell=True, stderr=STDOUT, timeout=int(config.testMaxTime))
+                check_output(config.testCommand + " 1>/dev/null 2>/dev/null", shell=True, stderr=STDOUT, timeout=config.testMaxTime)
                 test_status = 0
             except CalledProcessError:
+                test_status = 1
+            except TimeoutExpired:
+                print("TIMEOUT after %d seconds"%(config.testMaxTime))
                 test_status = 1
 
         #score
         if test_status == 0 and build_status == 0:
             score += 1
-            print("SUCCESS (%d / %d)"%(score, i))
+            print("SUCCESS %d / %d (%s %%)"%(score, i, 100 * score / i))
         else:
-            print("FAILED (%d / %d)"%(score, i))
+            print("FAILED %d / %d (%s %%)"%(score, i, 100 * score / i))
 
         #restore
         mutator.restore()
