@@ -175,9 +175,9 @@ class Mutator:
 if __name__== "__main__":
     #load config
     config = Config("config.ini")
-    coverage = Coverage()
 
     #load coverage
+    coverage = Coverage()
     coverage.load(config.coverage_file)
 
     #build mutator
