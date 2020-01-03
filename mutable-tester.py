@@ -80,6 +80,14 @@ class Mutator:
             " > ": [" == ", " <= ", " < ", " != ", " >= "],
             " && ": [" || "],
             " || ": [" && "],
+            "++": ['--'],
+            "--": ["++"],
+            "+=": ["-="],
+            "-=": ["+="],
+            " + ": [" - ", " * ", " / "],
+            " - ": [" + ", " * ", " / "],
+            # " * ": [" + ", " - ", " / "],
+            # " / ": [" + ", " - ", " * "],
             "0":['1', '2', '3', '4', '5', '6', '7', '8', '9'],
             "1":['0', '2', '3', '4', '5', '6', '7', '8', '9'],
             "2":['1', '0', '3', '4', '5', '6', '7', '8', '9'],
@@ -120,10 +128,46 @@ class Mutator:
                         self.parseLocus(filename, lineno, line, mut)
             print(self.locusList)
 
+    def mutate_file(self, locus, dest):
+        print(locus['filename'], locus['lineno'], locus['pattern'], dest)
+        
+        #backup
+        with open(locus['filename'], 'r') as fp:
+            self.backup_filename = locus['filename']
+            self.backup = fp.read()
+
+        #patch
+        lines = self.backup.split('\n')
+
+        #loop
+        with open(locus['filename'], 'w') as fp:
+            cursor = 0
+            for line in lines:
+                cursor += 1
+                if cursor == locus['lineno']:
+                    print(line)
+                    line = line[0:locus['cursor']] + dest + line[locus['cursor'] + len(locus['pattern']):]
+                    print(line)
+                fp.write(line + "\n")
+
     def mutate(self):
-        sel = random.randint(0, len(self.locusList))
-        dest = random.randint(0, self.mutations[sel['pattern']])
-        print(sel, dest)
+        #select source
+        sel = random.randrange(0, len(self.locusList))
+
+        #extract info
+        locus = self.locusList[sel]
+        pattern = locus['pattern']
+        mutations = self.mutations[pattern]
+
+        #select dest
+        dest = random.randrange(0, len(mutations))
+
+        #apply
+        self.mutate_file(locus, mutations[dest])
+
+    def restore(self):
+        with open(self.backup_filename, 'w') as fp:
+            fp.write(self.backup)
 
 #main
 if __name__== "__main__":
@@ -137,3 +181,4 @@ if __name__== "__main__":
                 mutator.loadFile(fname, coverage)
 
     mutator.mutate()
+    mutator.restore()
