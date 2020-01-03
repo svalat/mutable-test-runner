@@ -20,16 +20,16 @@ class Config:
     def __init__(self, path: str):
         config = configparser.ConfigParser()
         config.read(path)
-        self.projectName = config["project"]["name"]
-        self.sourcesPaths = config["sources"]["paths"]
-        self.sourcesPatterns = config["sources"]["patterns"]
-        self.coverageFile = config["coverage"]["file"]
-        self.buildDirectory = config["build"]["directory"]
-        self.buildCommand = config["build"]["command"]
-        self.testDirectory = config["test"]["directory"]
-        self.testCommand = config["test"]["command"]
-        self.testMaxTime = int(config["test"]["maxtime"])
-        self.runnerCount = int(config["runner"]["count"])
+        self.project_name = config["project"]["name"]
+        self.sources_paths = config["sources"]["paths"]
+        self.sources_patterns = config["sources"]["patterns"]
+        self.coverage_file = config["coverage"]["file"]
+        self.build_directory = config["build"]["directory"]
+        self.build_command = config["build"]["command"]
+        self.test_directory = config["test"]["directory"]
+        self.test_command = config["test"]["command"]
+        self.test_max_time = int(config["test"]["maxtime"])
+        self.runner_count = int(config["runner"]["count"])
 
 #class to track coverage stats
 class Coverage:
@@ -39,29 +39,29 @@ class Coverage:
 
     def load(self, path: str):
         self.maps = {}
-        regexpFile = re.compile("^SF:(.*)\n")
-        regexpLine = re.compile("^DA:([0-9]+),[0-9]+")
+        regexp_file = re.compile("^SF:(.*)\n")
+        regexp_line = re.compile("^DA:([0-9]+),[0-9]+")
         filename = ''
         with open(path, 'r') as fp:
             content = fp.readlines()
             for line in content:
-                resFile = regexpFile.match(line)
-                resLine = regexpLine.match(line)
-                if resFile:
-                    filename = resFile.group(1)
+                res_file = regexp_file.match(line)
+                res_line = regexp_line.match(line)
+                if res_file:
+                    filename = res_file.group(1)
                     self.maps[filename] = {}
-                elif resLine:
-                    lineno = resLine.group(1)
+                elif res_line:
+                    lineno = res_line.group(1)
                     self.maps[filename][lineno] = True
             self.loaded = True
 
-    def hasFile(self, filename) -> bool:
+    def has_file(self, filename) -> bool:
         if self.loaded:
             return (filename in self.maps)
         else:
             return True
 
-    def hasFileLine(self, filename: str, line: int) -> bool:
+    def has_file_line(self, filename: str, line: int) -> bool:
         if not self.loaded:
             return True
         elif not filename in self.maps:
@@ -73,7 +73,7 @@ class Coverage:
 
 class Mutator:
     def __init__(self):
-        self.locusList = []
+        self.locus_list = []
         self.mutations = {
             " == ": [" != ", " <= ", " < ", " >= ", " > "],
             " != ": [" == ", " <= ", " < ", " >= ", " > "],
@@ -103,12 +103,12 @@ class Mutator:
             "9":['1', '2', '3', '4', '5', '6', '7', '8', '0'],
         }
 
-    def parseLocus(self, filename: str, lineno: int, line: str, pattern: str):
+    def parse_locus(self, filename: str, lineno: int, line: str, pattern: str):
         cursor = 0
         while cursor >= 0:
             cursor = line.find(pattern, cursor)
             if cursor >= 0:
-                self.locusList.append({
+                self.locus_list.append({
                     'pattern': pattern,
                     'cursor': cursor,
                     'lineno': lineno,
@@ -116,9 +116,9 @@ class Mutator:
                 })
                 cursor += 1
 
-    def loadFile(self, filename: str, coverage: Coverage):
+    def load_file(self, filename: str, coverage: Coverage):
         #if present in coverage
-        if not coverage.hasFile(filename):
+        if not coverage.has_file(filename):
             return
 
         #load
@@ -126,9 +126,9 @@ class Mutator:
             lineno = 0
             for line in fp.readlines():
                 lineno += 1
-                if coverage.hasFileLine(filename, lineno):
+                if coverage.has_file_line(filename, lineno):
                     for mut in self.mutations:
-                        self.parseLocus(filename, lineno, line, mut)
+                        self.parse_locus(filename, lineno, line, mut)
 
     def mutate_file(self, locus, dest):
         print("%s:%s ('%s' => '%s')"%(locus['filename'], locus['lineno'], locus['pattern'], dest))
@@ -154,10 +154,10 @@ class Mutator:
 
     def mutate(self):
         #select source
-        sel = random.randrange(0, len(self.locusList))
+        sel = random.randrange(0, len(self.locus_list))
 
         #extract info
-        locus = self.locusList[sel]
+        locus = self.locus_list[sel]
         pattern = locus['pattern']
         mutations = self.mutations[pattern]
 
@@ -178,42 +178,42 @@ if __name__== "__main__":
     coverage = Coverage()
 
     #load coverage
-    coverage.load(config.coverageFile)
+    coverage.load(config.coverage_file)
 
     #build mutator
     mutator = Mutator()
 
     #reset sources
-    os.chdir(config.sourcesPaths)
+    os.chdir(config.sources_paths)
     os.system("git reset --hard")
 
     #load sources
-    for path in config.sourcesPaths.split(','):
-        for ext in config.sourcesPatterns.split(','):
+    for path in config.sources_paths.split(','):
+        for ext in config.sources_patterns.split(','):
             for fname in glob.glob(path+"/**/"+ext, recursive=True):
-                mutator.loadFile(fname, coverage)
+                mutator.load_file(fname, coverage)
 
     #loop
-    cnt = config.runnerCount
+    cnt = config.runner_count
     score = 0
     for i in range(1, cnt+1):
         #mutate
         mutator.mutate()
 
         #build
-        os.chdir(config.buildDirectory)
-        build_status = os.system(config.buildCommand + " 1>/dev/null 2>/dev/null")
+        os.chdir(config.build_directory)
+        build_status = os.system(config.build_command + " 1>/dev/null 2>/dev/null")
 
         #run tests
         if build_status == 0:
-            os.chdir(config.testDirectory)
+            os.chdir(config.test_directory)
             try:
-                check_output(config.testCommand + " 1>/dev/null 2>/dev/null", shell=True, stderr=STDOUT, timeout=config.testMaxTime)
+                check_output(config.test_command + " 1>/dev/null 2>/dev/null", shell=True, stderr=STDOUT, timeout=config.test_max_time)
                 test_status = 0
             except CalledProcessError:
                 test_status = 1
             except TimeoutExpired:
-                print("TIMEOUT after %d seconds"%(config.testMaxTime))
+                print("TIMEOUT after %d seconds"%(config.test_max_time))
                 test_status = 1
 
         #score
