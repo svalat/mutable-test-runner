@@ -24,7 +24,7 @@ lcov -o out.info -c -d .
 Then just run the script.
 
 ```sh
-./mutable-tester.py
+./mutable-test-runner.py
 ```
 
 License
