@@ -4,7 +4,7 @@
 #              Author:   Sébastien Valat
 #              Date:     01/2019
 #              License:  CeCILL-C
-#              Version:  0.0
+#              Version:  0.1.0
 ################################################################
 
 #imports
@@ -38,10 +38,15 @@ class Coverage:
         self.loaded = False
 
     def load(self, path: str):
+		#vars
         self.maps = {}
+
+		#regex
         regexp_file = re.compile("^SF:(.*)\n")
         regexp_line = re.compile("^DA:([0-9]+),[0-9]+")
         filename = ''
+
+		#load
         with open(path, 'r') as fp:
             content = fp.readlines()
             for line in content:
@@ -178,7 +183,8 @@ if __name__== "__main__":
 
     #load coverage
     coverage = Coverage()
-    coverage.load(config.coverage_file)
+	if config.coverage_file != '':
+    	coverage.load(config.coverage_file)
 
     #build mutator
     mutator = Mutator()
