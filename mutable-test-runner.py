@@ -189,12 +189,13 @@ if __name__== "__main__":
     #build mutator
     mutator = Mutator()
 
-    #reset sources
-    os.chdir(config.sources_paths)
-    os.system("git reset --hard")
-
     #load sources
     for path in config.sources_paths.split(','):
+        #reset
+        os.chdir(path)
+        os.system("git reset --hard")
+
+        #list files
         for ext in config.sources_patterns.split(','):
             for fname in glob.glob(path+"/**/"+ext, recursive=True):
                 mutator.load_file(fname, coverage)
