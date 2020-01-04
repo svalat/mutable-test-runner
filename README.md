@@ -27,6 +27,15 @@ Then just run the script.
 ./mutable-test-runner.py
 ```
 
+Constrains
+----------
+
+This script does not parse the language, it only search pattern and replace them.
+This is preferable to use code coverage profiles to eliminate comments which
+might generate false negative.
+
+It also consider spaces arround operators like `a == b` not `a==b`.
+
 License
 -------
 
