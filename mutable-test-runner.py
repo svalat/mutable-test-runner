@@ -183,8 +183,8 @@ if __name__== "__main__":
 
     #load coverage
     coverage = Coverage()
-	if config.coverage_file != '':
-    	coverage.load(config.coverage_file)
+    if config.coverage_file != '':
+        coverage.load(config.coverage_file)
 
     #build mutator
     mutator = Mutator()
