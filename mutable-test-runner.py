@@ -23,6 +23,7 @@ class Config:
         self.project_name = config["project"]["name"]
         self.sources_paths = config["sources"]["paths"]
         self.sources_patterns = config["sources"]["patterns"]
+        self.sources_exclude_patterns = config["sources"]["exclude_patterns"]
         self.coverage_file = config["coverage"]["file"]
         self.build_directory = config["build"]["directory"]
         self.build_command = config["build"]["command"]
@@ -30,6 +31,12 @@ class Config:
         self.test_command = config["test"]["command"]
         self.test_max_time = int(config["test"]["maxtime"])
         self.runner_count = int(config["runner"]["count"])
+    
+    def is_excluded(self, path):
+        for pattern in self.sources_exclude_patterns.split(','):
+            if pattern in path:
+                return True
+        return False
 
 #class to track coverage stats
 class Coverage:
@@ -38,15 +45,15 @@ class Coverage:
         self.loaded = False
 
     def load(self, path: str):
-		#vars
+        #vars
         self.maps = {}
 
-		#regex
+        #regex
         regexp_file = re.compile("^SF:(.*)\n")
         regexp_line = re.compile("^DA:([0-9]+),[0-9]+")
         filename = ''
 
-		#load
+        #load
         with open(path, 'r') as fp:
             content = fp.readlines()
             for line in content:
@@ -198,7 +205,8 @@ if __name__== "__main__":
         #list files
         for ext in config.sources_patterns.split(','):
             for fname in glob.glob(path+"/**/"+ext, recursive=True):
-                mutator.load_file(fname, coverage)
+                if not config.is_excluded(fname):
+                    mutator.load_file(fname, coverage)
 
     #loop
     cnt = config.runner_count
