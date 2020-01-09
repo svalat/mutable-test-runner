@@ -36,6 +36,13 @@ might generate false negative.
 
 It also consider spaces arround operators like `a == b` not `a==b`.
 
+Caution
+-------
+
+Before starting, the script call `git reset --hard` to reset the sources
+even if you made a previous run stopped by CTRL+C. Take care not loosing 
+data.
+
 License
 -------
 
